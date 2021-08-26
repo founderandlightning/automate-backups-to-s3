@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DBNAME=""
-EXPIRATION="30"
+EXPIRATION_DAYS="30"
 Green='\033[0;32m'
 EC='\033[0m' 
 FILENAME=`date +%H_%M_%d%m%Y`
@@ -50,12 +50,16 @@ if [[ -z "$DATABASE_URL" ]]; then
   echo "Missing DATABASE_URL variable"
   exit 1
 fi
+if [[ -z "$EXPIRATION_DAYS" ]]; then
+  echo "Missing EXPIRATION_DAYS variable"
+  exit 1
+fi
 
 printf "${Green}Start dump${EC}"
 
 time pg_dump -b -F c --dbname=$DATABASE_URL | gzip >  /tmp/"${DBNAME}_${FILENAME}".gz
 
-EXPIRATION_DATE=$(date -d "$EXPIRATION days" +"%Y-%m-%dT%H:%M:%SZ")
+EXPIRATION_DATE=$(date -d "$EXPIRATION_DAYS days" +"%Y-%m-%dT%H:%M:%SZ")
 
 printf "${Green}Move dump to AWS${EC}"
 time /app/vendor/bin/aws s3 cp /tmp/"${DBNAME}_${FILENAME}".gz s3://$S3_BUCKET_PATH/$DBNAME/"${DBNAME}_${FILENAME}".gz --expires $EXPIRATION_DATE
